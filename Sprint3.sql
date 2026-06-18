@@ -86,7 +86,7 @@ SELECT
     DATE(timestamp) AS fecha,
     ROUND(SUM(amount),2) AS ingresos
 FROM 'sprint3-analytics-luis-rayon.sprint3_bronze.transactions_raw_native'
-WHERE EXTRACT(YEAR FROM timestamp) = 2021
+WHERE EXTRACT(YEAR FROM timestamp) = 2021 AND t.declined = 0
 GROUP BY fecha
 ORDER BY ingresos DESC
 LIMIT 5
@@ -97,11 +97,13 @@ LIMIT 5
 SELECT
     c.company_name AS nombre,
     c.country AS pais,
-    DATE(t.timestamp) AS fecha
-FROM 'sprint3-analytics-luis-rayon.sprint3_bronze.transactions_raw_native' AS t
-JOIN 'sprint3-analytics-luis-rayon.sprint3_bronze.companies_raw' AS c
+    DATE(t.timestamp) AS fecha,
+    ROUND(t.amount,2) AS importe
+FROM sprint3-analytics-luis-rayon.sprint3_bronze.transactions_raw_native AS t
+JOIN sprint3-analytics-luis-rayon.sprint3_bronze.companies_raw AS c
 ON t.business_id = c.company_id
 WHERE t.amount BETWEEN 100 AND 200
+    AND t.declined = 0
     AND DATE(t.timestamp) IN (
         DATE '2015-04-29',
         DATE '2018-07-20',
@@ -109,7 +111,6 @@ WHERE t.amount BETWEEN 100 AND 200
         )
 ORDER BY fecha, nombre
 ;
-
 --Nivel 2
 --Ejercicio 1
 
@@ -118,7 +119,7 @@ SELECT
     id AS product_id,
     product_name AS name,
     CAST(REPLACE(warehouse_id, 'WH-', '') AS INT64) AS warehouse_id,
-    CAST(price AS FLOAT64) AS price,
+    price,
     weight,
     colour,
     category,
@@ -189,36 +190,24 @@ FROM 'sprint3-analytics-luis-rayon.sprint3_bronze.european_users_raw'
 
 --Ejercicio 4
 
-CREATE OR REPLACE TABLE 'sprint3-analytics-luis-rayon.sprint3_silver.companies_clean' AS
-SELECT
-    company_id,
-    company_name,
-    phone,
-    email,
-    country,
-    website
-FROM 'sprint3-analytics-luis-rayon.sprint3_bronze.companies_raw'
+CREATE OR REPLACE TABLE sprint3-analytics-luis-rayon.sprint3_silver.companies_clean AS
+SELECT *
+FROM sprint3-analytics-luis-rayon.sprint3_bronze.companies_raw
 ;
 
-CREATE OR REPLACE TABLE 'sprint3-analytics-luis-rayon.sprint3_silver.credit_cards_clean' AS
-SELECT
+CREATE OR REPLACE TABLE sprint3-analytics-luis-rayon.sprint3_silver.credit_cards_clean AS
+SELECT 
     id AS card_id,
-    user_id,
-    iban,
-    pan,
-    pin,
-    cvv,
-    track1,
-    track2,
-    expiring_date
-FROM 'sprint3-analytics-luis-rayon.sprint3_bronze.credit_cards_raw'
+    * EXCEPT(id)
+FROM sprint3-analytics-luis-rayon.sprint3_bronze.credit_cards_raw
 ;
 
 --Nivel 3
 --Ejercicio 1
 
-CREATE OR REPLACE VIEW 'sprint3-analytics-luis-rayon.sprint3_gold.v_marketing_kpis' AS
+CREATE OR REPLACE VIEW sprint3-analytics-luis-rayon.sprint3_gold.v_marketing_kpis AS
 SELECT
+    c.company_id,
     c.company_name,
     c.phone,
     c.country,
@@ -227,10 +216,12 @@ SELECT
         WHEN AVG(t.amount) > 260 THEN 'Premium'
         ELSE 'Standard'
     END AS tipo_cliente
-FROM 'sprint3-analytics-luis-rayon.sprint3_silver.companies_clean' AS c
-INNER JOIN 'sprint3-analytics-luis-rayon.sprint3_silver.transactions_clean' AS t
+FROM sprint3-analytics-luis-rayon.sprint3_silver.companies_clean AS c
+INNER JOIN sprint3-analytics-luis-rayon.sprint3_silver.transactions_clean AS t
     ON c.company_id = t.business_id
+WHERE t.declined = 0
 GROUP BY
+    c.company_id,
     c.company_name,
     c.phone,
     c.country
@@ -245,14 +236,15 @@ ORDER BY
 
 --Ejercicio 2
 
-CREATE OR REPLACE TABLE 'sprint3-analytics-luis-rayon.sprint3_gold.product_sales_ranking' AS
+CREATE OR REPLACE TABLE sprint3-analytics-luis-rayon.sprint3_gold.product_sales_ranking AS
 
 WITH product_sales AS (
     SELECT
         product_id,
         COUNT(*) AS ventas_totales
-    FROM 'sprint3-analytics-luis-rayon.sprint3_silver.transactions_clean',
+    FROM sprint3-analytics-luis-rayon.sprint3_silver.transactions_clean AS t,
          UNNEST(product_ids) AS product_id
+    WHERE t.declined = 0
     GROUP BY product_id
     )
 
@@ -262,7 +254,7 @@ SELECT
     p.price,
     p.colour,
     IFNULL(ps.ventas_totales, 0) AS ventas_totales
-FROM 'sprint3-analytics-luis-rayon.sprint3_silver.products_clean' AS p
+FROM sprint3-analytics-luis-rayon.sprint3_silver.products_clean AS p
 LEFT JOIN product_sales AS ps
     ON p.product_id = ps.product_id
 ;
