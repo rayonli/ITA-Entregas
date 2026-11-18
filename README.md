@@ -14,7 +14,7 @@ Análisis de 99.092 pedidos reales del marketplace brasileño Olist (enero de 20
 | `02_powerbi/` | `TFDA_Olist.pbix`, su exportación `TFDA_Olist_PowerBI.pdf` y `Formulas_DAX_TFDA_Olist.pdf` |
 | `03_informe/` | `Informe_TFDA_Olist_Luis_Rayon.pdf` (formato artículo, 4 páginas) |
 | `04_presentacion/` | `Presentacion_TFDA_Olist.pptx`, usada en la defensa |
-| `05_estadistica/` | `chi_cuadrado_olist.py`: prueba chi-cuadrado y V de Cramér |
+| `05_estadistica/` | `chi_cuadrado.py`: prueba chi-cuadrado y V de Cramér |
 
 ## Datos
 
@@ -28,7 +28,7 @@ Análisis de 99.092 pedidos reales del marketplace brasileño Olist (enero de 20
 ## Cómo reproducir
 
 1. Descarga los CSV en `01_datos/` y abre `02_powerbi/TFDA_Olist.pbix`. Si cambia la ruta, actualízala en **Transformar datos → Configuración de origen de datos**.
-2. Para el contraste estadístico: `pip install scipy numpy` y `python 05_estadistica/chi_cuadrado_olist.py`.
+2. Para el contraste estadístico: `pip install scipy numpy` y `python 05_estadistica/chi_cuadrado.py`.
 
 ## Resultados clave
 
